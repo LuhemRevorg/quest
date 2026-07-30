@@ -1,0 +1,15 @@
+[package]
+name = "quest-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+chrono.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+directories = "6"
+keyring = { version = "3", features = ["apple-native", "windows-native", "sync-secret-service"] }
+toml = "1.1.4"

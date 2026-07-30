@@ -1,0 +1,25 @@
+# Rust
+/target
+**/*.rs.bk
+
+# Node
+node_modules/
+worker/dist/
+
+# ---------------------------------------------------------------------------
+# Crown jewels. The persisted browser profile is a bearer token for the entire
+# student record. It must never be committed, synced, or shared.
+# ---------------------------------------------------------------------------
+profile/
+*.profile/
+session/
+audit.log
+
+# Captured traffic from real sessions contains live cookies + personal data.
+# Only *sanitized* fixtures belong in fixtures/ — see fixtures/README.md.
+*.har
+!fixtures/har/*.sanitized.har
+
+.DS_Store
+.env
+.env.*
