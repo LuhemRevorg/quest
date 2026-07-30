@@ -1,140 +1,148 @@
 # quest
 
-A personal CLI for reading and managing my own University of Waterloo academic
-record through Quest. Single user, local only, my own account.
+A command-line tool for reading your own University of Waterloo academic record —
+grades, and eventually schedule, transcript, holds and fees — from
+[Quest](https://uwaterloo.ca/the-centre/quest).
 
-There is no API for personal student data — UW's Open Data API covers the public
-course catalog only. Grades, enrollment, and transcripts exist solely behind
-Quest's authenticated web session (PeopleSoft / Oracle Campus Solutions. So this
-is a browser-automation project, not an HTTP-client project.
+Built so that scripts and AI agents can use it: every command supports `--json`
+with a versioned schema, exits with meaningful codes, and **never prompts or
+hangs**. If a human is genuinely required, it exits `77` and says so.
 
-Duo 2FA is mandatory and stays that way. The design authenticates *through* Duo
-like a human, then persists Duo's 30-day device trust so later runs need no
-passcode. It does not persist a Quest session — that turns out to be impossible
-(ADR 0003).
+```console
+$ quest grades --term w2026
+Winter 2026 (1261)
+standing: Good Standing
 
-## Status: Phase 2 — first read command working
+CLASS        DESCRIPTION                         UNITS  GRADE  POINTS
+ABCD 100     Introduction to Something            0.50     88   44.00
+ABCD 200     Something, Continued                 0.50     91   45.50
+EFGH 150     An Elective                          0.50     79   39.50
 
-```
-quest auth login     # interactive, headed; you type the Duo passcode
-quest auth status    # is the session live? when does device trust expire?
-quest auth refresh   # non-interactive re-auth; exit 77 if a human is needed
-quest auth logout    # clear the persisted session
-quest grades --term <t> [--json]    # one term's grades, fully non-interactive
+3 courses, 1.50 units, 129.00 grade points
 ```
 
-`--term` takes a code or a name: `1261`, `"Winter 2026"`, `winter2026`, `w2026`.
-UW's code is `(year - 1900) * 10 + {Winter 1, Spring 5, Fall 9}`, computed rather
-than scraped — no code appears in Quest's markup.
+> [!IMPORTANT]
+> **Unofficial.** Not affiliated with, endorsed by, or supported by the
+> University of Waterloo. It works by driving a real browser against Quest's web
+> interface, so a UW-side redesign can break it at any time.
+>
+> **For your own account only.** It is built for one person reading their own
+> record. Do not point it at anyone else's credentials.
 
-`refresh` is a fourth command beyond the three originally scoped, added because
-UW disables ADFS keep-me-signed-in — see [ADR 0003](docs/adr/0003-what-actually-persists.md).
-Without it, "reuse the persisted session, never prompt" isn't achievable on this
-identity stack. Phase 2's data commands call the same path.
+---
 
-All four commands are verified end to end against the live service, including
-`refresh` completing the whole sign-in chain **headless and unattended** — no window
-exists during that run, so nothing could have been clicked by hand.
+## Why a browser, not an API
 
-Decisions are recorded in
-[ADR 0001](docs/adr/0001-rust-cli-with-node-session-worker.md) (language split),
-[ADR 0002](docs/adr/0002-quest-auth-chain.md) (the auth chain, and why page
-detection works the way it does), and
-[ADR 0003](docs/adr/0003-what-actually-persists.md) (what actually persists, and
-why the password is in the keychain), and
-[ADR 0004](docs/adr/0004-the-post-duo-sso-handoff.md) (the post-Duo handoff — four
-wrong diagnoses and what finally found the answer), and
-[ADR 0005](docs/adr/0005-reading-grades.md) (reading grades, and why id-based
-scraping beats column positions).
+UW's Open Data API covers the public course catalog — it has nothing about *your*
+record. Grades, enrolment and transcripts exist only behind Quest's authenticated
+web session, so this drives a real browser.
 
-## The sign-in chain
+Duo 2FA is mandatory and stays that way. `quest` authenticates *through* Duo as
+you would, then reuses Duo's 30-day "remember this device" trust so later runs
+need no passcode. It does not bypass, weaken, or auto-approve any part of it, and
+it never stores a passcode.
 
-```
-quest.pecs.uwaterloo.ca/psp/SS/…   PeopleSoft
-  └─ SAML ─▶ adfs.uwaterloo.ca     username screen   (#nextButton; password field hidden)
-               └─ ─▶               password screen   (#submitButton)
-                      └─ ─▶ Duo    second factor — passes silently on device trust
-                             └─ ─▶ ?cmd=login        SSO handoff — follow the IdP link
-                                    └─ ─▶ back into Quest
-```
+## Requirements
 
-Two traps in there, both cost real debugging time:
+- **Rust** (stable; the toolchain is pinned in `rust-toolchain.toml`)
+- **Node.js 22+**
+- **macOS** — should work on Linux/Windows via the `keyring` crate's backends,
+  but only macOS is tested
+- A UW account with Duo enrolled
 
-- Both ADFS buttons are `<span role="button">`, not `<input type=submit>`, and only
-  one is visible per screen (`#nextButton`, then `#submitButton`).
-- The `?cmd=login` page's way into Quest is an anchor,
-  `<a href="javascript:getIdPLink()">Sign In</a>`. The local login form on that same
-  page has its submit deliberately suppressed (`ui-btn-hidden`) because this
-  deployment is SSO-only — clicking *that* posts empty credentials and returns
-  `errorCode=105`. See [ADR 0004](docs/adr/0004-the-post-duo-sso-handoff.md).
+## Install
 
-Because the chain is staged, `worker/src/handlers/login.ts` drives a loop keyed on
-whatever is currently on screen rather than filling a single form — which is what
-makes it tolerant of extra or reordered screens.
-
-Note `quest.uwaterloo.ca` (without `.pecs`) now redirects to a marketing page;
-the service moved.
-
-Quest's own session cookie is **session-scoped** — it cannot be persisted, since
-closing the browser context is what flushes the profile to disk. So every command
-re-establishes the session by walking that chain on the way in. What gets
-persisted is the ability to do that *silently*, in two independent layers:
-
-| Layer | Grants | Status at UW |
-| ----- | ------ | ------------ |
-| Duo device trust (`browsertrust\|…`) | 30 days without a passcode | ✅ works |
-| ADFS keep-me-signed-in | no password prompt | ❌ **disabled by UW** |
-
-`status` reports both. The second being unavailable is why the password has to
-live in the keychain: it is the only remaining human step, and it recurs on every
-command rather than monthly.
-
-So the working model is: **keychain password + Duo device trust = 30 days
-unattended.** When device trust lapses, commands exit 77 and a human runs
-`quest auth login` once. That is the ~monthly human touch the design wanted,
-just anchored on Duo's cookie instead of a session cookie.
-
-## Layout
-
-```
-crates/quest-core/       domain model, config, keychain, worker transport
-  src/session/           protocol.rs  <-- wire contract, keep in sync with TS
-  src/model/             typed, --json-serializable output types
-crates/quest-cli/        clap surface, output, exit codes  (binary: `quest`)
-worker/                  Node + Playwright session worker
-  src/protocol.ts        <-- other half of the wire contract
-  src/quest.ts           every sign-in URL/selector, in one place
-  src/grades.ts          the grades route + field ids, in one place
-fixtures/                sanitized HTML + HAR for parser tests
-docs/adr/                decisions
+```sh
+git clone https://github.com/LuhemRevorg/quest.git && cd quest
+npm --prefix worker install     # downloads Playwright's Chromium (~150 MB)
+npm --prefix worker run build
+cargo build --release
 ```
 
-## Architecture
+The binary lands at `target/release/quest`.
 
-Three layers:
+> **Note on installing elsewhere:** the binary spawns the Node worker from
+> `worker/dist/index.js`, found relative to the executable or the repo. `cargo
+> install` alone will not work — either run from the repo, or set
+> `QUEST_WORKER_JS=/path/to/worker/dist/index.js`.
 
-1. **Session** — Playwright `launchPersistentContext` against a fixed
-   user-data dir. ~80% of the risk; hardened first.
-2. **Transport** — replay PeopleSoft `ICAJAX` postbacks captured from a HAR in
-   preference to DOM scraping. Scrape only where necessary.
-3. **Domain + output** — typed structs, `--json` with a versioned schema,
-   meaningful exit codes, and no prompting outside `auth login`.
+## Quickstart
 
-### Auth model
+```sh
+# One interactive login. A browser opens; type your password at the prompt and
+# complete Duo yourself. Tick nothing else — it drives the rest.
+quest auth login --username you@uwaterloo.ca --save-password
 
-Authentication is split from work. `auth login` is interactive and rare
-(~monthly); every other command is fully non-interactive and never prompts. If a
-human is required they exit `77` (`NEEDS_REAUTH`) so an agent knows to stop —
-rather than hanging.
+# Everything after this is non-interactive.
+quest auth status
+quest grades --term w2026 --json
+```
 
-**What the CLI lives on is the ability to re-authenticate silently, not a
-persisted session.** Quest's session cookie is session-scoped and cannot survive,
-so every command re-walks the sign-in chain; what makes that unattended is the
-keychain password plus Duo's 30-day device trust. When the trust lapses, a human
-runs `auth login` once. See [ADR 0003](docs/adr/0003-what-actually-persists.md) —
-this replaces the original "the persisted session is the credential" model.
+On the first non-interactive run, macOS asks for Keychain access — choose
+**"Always Allow"**, or every read will wait on that dialog. (`quest` bounds the
+wait at 10s and exits `77` rather than hanging, but it can't succeed unattended
+until access is granted. Rebuilding the binary can re-trigger the prompt.)
 
-### Exit codes
+Your username must be the **full address** UW's ADFS expects
+(`you@uwaterloo.ca`), not the bare 8-character userid.
+
+## Commands
+
+### `quest auth login`
+
+Interactive, opens a real browser. The only command that ever waits on a human.
+Run it about once a month, when Duo device trust lapses.
+
+| Flag | |
+| ---- | --- |
+| `--username <USER@uwaterloo.ca>` | defaults to the saved value |
+| `--save-password` | store the password in the OS keychain (required for unattended use) |
+| `--duo-timeout <SECS>` | how long to wait for you at Duo (default 300) |
+
+### `quest auth status`
+
+Reports whether a session is usable and when Duo device trust expires. Never
+prompts. **Always exits 0** — it is a report, and it answered the question.
+
+### `quest auth refresh`
+
+Establishes a session with no human involved, using the keychain password and Duo
+device trust. Exits `77` the moment a human would be needed. This is what data
+commands call internally; run it directly to check the unattended path works.
+
+| Flag | |
+| ---- | --- |
+| `--timeout <SECS>` | give up after this long (default 60) |
+| `--display <headless\|headed>` | `headed` opens a visible window, for watching it work |
+
+### `quest auth logout`
+
+Deletes the stored session. Idempotent.
+
+| Flag | |
+| ---- | --- |
+| `--forget-password` | also remove the password from the OS keychain |
+
+Note this discards Duo device trust too, so the next login needs a fresh passcode.
+
+### `quest grades --term <TERM>`
+
+One term's grades. Fully non-interactive.
+
+`--term` accepts a UW code or a name — `1261`, `"Winter 2026"`, `winter2026`,
+`w2026` are equivalent. The code is `(year - 1900) * 10 + {Winter 1, Spring 5,
+Fall 9}`.
+
+If the term isn't available, the error lists the ones Quest does offer.
+
+### Global
+
+`--json` prints a single JSON document on stdout, with `schema_version` for
+pinning. Progress and errors go to stderr, so stdout stays clean for piping.
+
+## Exit codes
+
+Stable, and safe to branch on.
 
 | Code | Meaning |
 | ---- | ------- |
@@ -142,73 +150,82 @@ this replaces the original "the persisted session is the credential" model.
 | 1  | generic failure |
 | 2  | usage error |
 | 66 | input was required but stdin is not a terminal |
-| 67 | WatIAM rejected the credentials |
-| 69 | session worker / browser unavailable |
+| 67 | credentials rejected |
+| 69 | session worker or browser unavailable |
 | 70 | a Quest page failed to parse — Quest probably changed |
 | 75 | timed out waiting for Duo; retryable |
-| 77 | `NEEDS_REAUTH` — no usable session, a human must log in |
-| 78 | config or profile-dir problem |
+| 77 | **`NEEDS_REAUTH`** — a human must run `quest auth login` |
+| 78 | config or profile-directory problem |
 
-`auth status` exits **0** whether the session is live or dead — it is a report,
-and it answered the question. Exit 77 is for commands that needed a session and
-could not proceed.
+In `--json` mode, failures print `{"error": …, "exit_code": …, "needs_reauth": …}`
+to stderr, so a caller never has to parse prose.
 
-## Security
+## What is stored, and where
 
-- **The profile dir is the crown jewel** — a bearer token for the entire student
-  record. `0700`, verified on every use, never cloud-synced, gitignored.
-- **The password is stored in the OS keychain**, opt-in via
-  `auth login --save-password`, using the `keyring` crate — never a dotfile, never
-  plaintext. This is a change from the original "don't store it" default, forced by
-  UW disabling ADFS keep-me-signed-in; the reasoning is in ADR 0003.
-  Consequence, stated plainly: the keychain entry and the profile dir *together*
-  grant 30 days of unattended access to the full record. `auth logout
-  --forget-password` revokes both.
-- **Duo passcodes are never stored, cached, or automated.** No push
-  auto-approval, no MFA-fatigue tricks, no bypass.
-- **Mutations** (phase 4) are dry-run by default, require a confirmation token an
-  agent cannot self-generate (`--confirm-drop CS486`), and append to an audit log.
-- **Official transcripts are never automated** — that's a paid ($20) order.
+| What | Where | Notes |
+| ---- | ----- | ----- |
+| Browser profile | `~/Library/Application Support/ca.uwaterloo.quest/profile` | `0700`, checked on every use |
+| Config (username, preferences) | `…/config.toml` | `0600`, no secrets |
+| Password | OS keychain, service `ca.uwaterloo.quest` | opt-in only |
+| Duo passcodes | **nowhere** | never stored or cached |
 
-## Development
+Override the location with `QUEST_DATA_DIR`.
+
+**The profile directory and the keychain entry together grant 30 days of
+unattended access to your full record.** Treat them as you would a password.
+`quest auth logout --forget-password` revokes both. The profile is gitignored and
+should never be synced to cloud storage.
+
+Other guarantees, by design:
+
+- **Official transcripts are never ordered** — that's a paid ($20) request.
+- **Mutations** (enrol/drop, not yet implemented) will be dry-run by default and
+  require an explicit confirmation token, with every change appended to a local
+  audit log.
+
+## Troubleshooting
+
+| Symptom | Cause |
+| ------- | ----- |
+| exit `77`, "no stored password" | run `auth login --save-password` |
+| exit `77`, Duo wants a passcode | device trust lapsed; run `auth login` |
+| exit `77`, keychain timeout | the macOS dialog is waiting — answer it, choose "Always Allow" |
+| exit `70`, "may have changed" | Quest changed its markup; please [open an issue](https://github.com/LuhemRevorg/quest/issues) |
+| exit `69`, worker not built | `npm --prefix worker install && npm --prefix worker run build` |
+| `sso: not persisted` in `status` | **normal.** UW disables ADFS keep-me-signed-in |
+
+Every command takes ~10–20s, because no Quest session survives between
+invocations and each run re-walks the full sign-in chain. That is a property of
+the identity stack, not a bug — see [ARCHITECTURE.md](ARCHITECTURE.md).
+
+## Status
+
+| Phase | Scope | State |
+| ----- | ----- | ----- |
+| 1 | `auth login` / `status` / `refresh` / `logout` | ✅ done |
+| 2 | first read command (`grades`) | ✅ done |
+| 3 | schedule, unofficial transcript, holds, fees | planned |
+| 4 | enrol / drop, behind dry-run + confirmation tokens | planned |
+| 5 | MCP server exposing the same core library to agents | planned |
+
+## Contributing
+
+Read [ARCHITECTURE.md](ARCHITECTURE.md) first — particularly the decision records
+in `docs/adr/`, which document the wrong turns as well as the conclusions.
 
 ```sh
-npm --prefix worker install      # installs Playwright + Chromium
-npm --prefix worker run build    # the Rust side spawns worker/dist/index.js
-cargo build
-
-cargo test --workspace           # wire-protocol contract tests
-npm --prefix worker test         # fixture + cookie-logic tests
+cargo test --workspace       # protocol contracts, exit codes, term codes
+npm --prefix worker test     # page classification and parsers, against fixtures
 ```
 
-Point `QUEST_DATA_DIR` at a throwaway directory to avoid touching the real
-session profile while developing.
+Set `QUEST_DATA_DIR` to a throwaway directory so development never touches a real
+session.
 
-| Variable | Effect |
-| -------- | ------ |
-| `QUEST_DATA_DIR` | relocate config + profile |
-| `QUEST_WORKER_JS` | override worker discovery |
-| `QUEST_NODE` | override the node binary |
-| `QUEST_DEBUG_COOKIES=1` | print the cookie jar — names, domains, expiries; never values |
-| `QUEST_DEBUG_PAGES=1` | print per-tick page classification and selector visibility |
-| `QUEST_DEBUG_DUMP_DIR` | save the HTML of a page the sign-in stalled on |
+Parsers are tested against saved pages in `fixtures/`, so a UW-side change shows
+up as a red test rather than a wrong grade. If you add a fixture, sanitize it
+first — [fixtures/README.md](fixtures/README.md) has the rules, and anything
+captured past sign-in must have its record replaced, not just its identifiers.
 
-### Verifying the unattended path
+## License
 
-```sh
-export QUEST_DATA_DIR=/tmp/quest-dev
-cargo run -- auth login --username you@uwaterloo.ca --save-password
-cargo run -- auth refresh          # must reach `live` with no prompt at all
-```
-
-`login` opens a browser; type your password at the terminal prompt (so it reaches
-the keychain) and complete Duo yourself if asked. `refresh` then proves the
-unattended path: headless, no prompt, `live` on success or exit 77.
-
-**On the first `refresh`, macOS shows a Keychain access dialog — choose "Always
-Allow."** Otherwise every read waits on that prompt. `refresh` bounds the read at
-10s and exits 77 rather than hanging, but until access is granted it can never
-succeed unattended. Rebuilding the binary can re-trigger the dialog, since the ACL
-is tied to the signed binary.
-
-Expect `sso: not persisted` in `status` — that is normal here, not a failure.
+MIT — see [LICENSE](LICENSE).
