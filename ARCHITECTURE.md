@@ -64,13 +64,16 @@ crates/quest-cli/        clap surface, output, exit codes  (binary: `quest`)
 worker/                  Node + Playwright session worker
   src/protocol.ts        ← other half of the wire contract
   src/quest.ts           every sign-in URL/selector, in one place
-  src/grades.ts          the grades route + field ids, in one place
+  src/peoplesoft.ts      navigation shared by every self-service page
+  src/grades.ts          the grades route + field ids
+  src/schedule.ts        the class-schedule route + field ids
   src/handlers/          one file per operation
 fixtures/                sanitized HTML for parser tests
 docs/adr/                decisions, including the wrong turns
 ```
 
-Quest-specific selectors are deliberately confined to `quest.ts` and `grades.ts`,
+Quest-specific selectors are deliberately confined to `quest.ts`, `grades.ts` and
+`schedule.ts`,
 so a UW-side change has exactly one place to be fixed.
 
 ---
@@ -177,6 +180,17 @@ PeopleSoft's DOM is otherwise hostile: content sits inside nested
 `ptifrmtgtframe` / `main_target_win0` iframes, ids contain `$`, and controls are
 `<span role="button">` or `<a href="javascript:…">` rather than form elements.
 
+**Prefix-matching those ids is a trap**, and has now caused three separate bugs —
+`DERIVED_…_DESCR$N$` colliding with a one-off element at N=5, `MTG_SECTION$N` also
+matching `MTG_SECTION$span$N`, and a term label read from a present-but-empty
+element. Match an exact suffix (`/^MTG_SECTION\$\d+$/`) and assert the result in a
+fixture test.
+
+Pages also nest: the class schedule is a container per course, each holding a
+meeting grid whose row indices are **page-global**, not per course. Collect child
+rows by walking the container's subtree; index arithmetic passes for
+single-meeting courses and mis-groups the first lecture-plus-tutorial it meets.
+
 ## Correctness guards
 
 Silently-wrong data is the worst outcome, worse than an error, so several checks
@@ -261,6 +275,7 @@ turns are the expensive part to rediscover.
 | [0003](docs/adr/0003-what-actually-persists.md) | What actually persists, and why the password is in the keychain |
 | [0004](docs/adr/0004-the-post-duo-sso-handoff.md) | The post-Duo handoff — four wrong diagnoses and what found the answer |
 | [0005](docs/adr/0005-reading-grades.md) | Reading grades, and why id-based scraping beats column positions |
+| [0006](docs/adr/0006-reading-the-class-schedule.md) | Reading the class schedule, and the shared-navigation extraction |
 
 ## Status and roadmap
 
@@ -268,7 +283,7 @@ turns are the expensive part to rediscover.
 | ----- | ----- | ----- |
 | 1 | `auth login` / `status` / `refresh` / `logout` | done, verified end to end |
 | 2 | first read command (`grades`) | done |
-| 3 | schedule, unofficial transcript, holds, fees | not started |
+| 3 | `schedule` done; unofficial transcript, holds, fees | in progress |
 | 4 | enrol / drop, behind dry-run + confirmation tokens + audit log | not started |
 | 5 | MCP server over the finished core library | not started |
 

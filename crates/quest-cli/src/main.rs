@@ -71,6 +71,12 @@ fn run(args: &Cli, out: Out) -> quest_core::Result<i32> {
             out.emit(&grades, commands::grades::render);
             Ok(exit::OK)
         }
+
+        Command::Schedule(schedule_args) => {
+            let schedule = commands::schedule::schedule(schedule_args, out)?;
+            out.emit(&schedule, commands::schedule::render);
+            Ok(exit::OK)
+        }
     }
 }
 

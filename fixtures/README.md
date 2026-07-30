@@ -20,6 +20,7 @@ scrubbed of every personal value — see the rules above.
 | `html/peoplesoft-signin.<date>.html` | PeopleSoft's local fallback form | unauthenticated |
 | `html/peoplesoft-sso-signin.<date>.html` | the post-Duo handoff page and its `getIdPLink()` anchor | unauthenticated |
 | `html/grades-winter2026.sanitized.html` | the grades grid's field ids | **authenticated, fully scrubbed** |
+| `html/schedule-spring2026.sanitized.html` | the class schedule's two-level structure | **authenticated, fully scrubbed** |
 
 Tests live in `worker/src/quest.test.ts`.
 
@@ -46,3 +47,7 @@ where it is effectively permanent.
 
 Keep: markup structure, element ids, class names, column headers, term labels,
 units, and grading-basis strings. Those are what break when Quest changes.
+
+**Third-party names count too.** The class schedule carries instructor names;
+those get replaced like everything else. It is not only your own data on these
+pages.

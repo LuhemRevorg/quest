@@ -135,6 +135,20 @@ Fall 9}`.
 
 If the term isn't available, the error lists the ones Quest does offer.
 
+### `quest schedule --term <TERM>`
+
+The classes you are enrolled in for a term — including a term that has not started
+yet, which `grades` cannot show. Fully non-interactive.
+
+Lists each course with its status, units and grading basis, then every meeting
+(component, section, days/times, room, instructor).
+
+Quest only offers the **current and upcoming term** here; enrolment is not kept
+historically. Ask for an older term and the error lists what is available — use
+`grades` for terms that are over.
+
+Same `--term`, `--timeout` and `--display` flags as `grades`.
+
 ### Global
 
 `--json` prints a single JSON document on stdout, with `schema_version` for
@@ -204,7 +218,7 @@ the identity stack, not a bug — see [ARCHITECTURE.md](ARCHITECTURE.md).
 | ----- | ----- | ----- |
 | 1 | `auth login` / `status` / `refresh` / `logout` | ✅ done |
 | 2 | first read command (`grades`) | ✅ done |
-| 3 | schedule, unofficial transcript, holds, fees | planned |
+| 3 | `schedule` done; unofficial transcript, holds, fees | in progress |
 | 4 | enrol / drop, behind dry-run + confirmation tokens | planned |
 | 5 | MCP server exposing the same core library to agents | planned |
 

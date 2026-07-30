@@ -6,6 +6,7 @@ import { createInterface } from "node:readline";
 
 import { grades } from "./handlers/grades.js";
 import { login } from "./handlers/login.js";
+import { schedule } from "./handlers/schedule.js";
 import { status } from "./handlers/status.js";
 import { WorkerError, send, type Request } from "./protocol.js";
 
@@ -17,6 +18,8 @@ async function dispatch(req: Request): Promise<unknown> {
       return status(req.id, req.params);
     case "grades":
       return grades(req.id, req.params);
+    case "schedule":
+      return schedule(req.id, req.params);
     case "shutdown":
       process.exit(0);
   }

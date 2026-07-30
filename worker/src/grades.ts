@@ -15,18 +15,16 @@
 // `record.field` names — far more stable than a grid's column order, which shifts
 // whenever someone adds a column.
 
-import type { Frame, Page } from "playwright";
-
-import { WorkerError } from "./protocol.js";
+import type { Frame } from "playwright";
 
 /** Fluid homepage tile that opens grades. */
-export const GRADES_TILE = "#win0divPTNUI_LAND_REC_GROUPLET\\$0";
+export const GRADES_TILE = /^grades$/i;
 
-/** The iframe the grades component renders into. */
-export const GRADES_FRAME_NAME = "main_target_win0";
-
-/** "Continue", which submits the chosen term. */
+/** Continue on the grades term picker — *not* the class schedule's id. */
 export const TERM_CONTINUE_ID = "UW_DRVD_SSS_SCT_SSR_PB_GO";
+
+/** First per-row field; also the "loaded" marker. */
+export const ROW_MARKER_PREFIX = "CLASS_TBL_VW_DESCR$";
 
 /** Per-row field ids; `$N` is the zero-based row index. */
 const ROW_FIELDS = {
@@ -77,108 +75,6 @@ export interface ParsedGrades {
   term_shown: string | null;
   academic_standing: string | null;
   courses: ParsedCourse[];
-}
-
-/** The frame the grades component lives in, or null while it is still loading. */
-export function gradesFrame(page: Page): Frame | null {
-  return page.frames().find((f) => f.name() === GRADES_FRAME_NAME) ?? null;
-}
-
-/** Open the Grades tile and wait for its frame to appear. */
-export async function openGrades(page: Page, timeoutMs: number): Promise<Frame> {
-  await page.locator(GRADES_TILE).click({ timeout: 15_000 });
-  const deadline = Date.now() + timeoutMs;
-  while (Date.now() < deadline) {
-    const frame = gradesFrame(page);
-    if (frame) {
-      // The frame element exists before its document does.
-      const ready = await frame
-        .evaluate(() => document.readyState !== "loading" && !!document.body)
-        .catch(() => false);
-      if (ready) return frame;
-    }
-    await sleep(500);
-  }
-  throw new WorkerError(
-    "unexpected_page",
-    `the Grades tile did not open a "${GRADES_FRAME_NAME}" frame — Quest's navigation may have changed`,
-  );
-}
-
-/** The terms Quest is willing to show, newest first. */
-export async function listTerms(frame: Frame): Promise<TermRow[]> {
-  const rows = await frame.evaluate(() =>
-    Array.from(
-      document.querySelectorAll<HTMLInputElement>(
-        'input[type=radio][id^="SSR_DUMMY_RECV1$sels$"]',
-      ),
-    ).map((radio) => {
-      const cells = Array.from(radio.closest("tr")?.querySelectorAll("td") ?? []).map((td) =>
-        (td.textContent ?? "").trim().replace(/\s+/g, " "),
-      );
-      return { radioId: radio.id, label: cells.find((c) => /\b20\d\d\b/.test(c)) ?? "" };
-    }),
-  );
-  return rows.filter((r) => r.label !== "");
-}
-
-/**
- * Select a term and submit it.
- *
- * Both controls are clicked via `getElementById().click()` rather than a Playwright
- * locator: PeopleSoft ids contain `$`, and Continue is an `<input type="button">`
- * whose behaviour lives in an `onclick` that a synthetic click does fire.
- */
-export async function selectTerm(frame: Frame, radioId: string): Promise<void> {
-  const ok = await frame.evaluate((id) => {
-    const el = document.getElementById(id) as HTMLInputElement | null;
-    if (!el) return false;
-    el.click();
-    return el.checked;
-  }, radioId);
-  if (!ok) {
-    throw new WorkerError("unexpected_page", `could not select the term radio ${radioId}`);
-  }
-
-  const submitted = await frame.evaluate((id) => {
-    const el = document.getElementById(id);
-    if (!el) return false;
-    el.click();
-    return true;
-  }, TERM_CONTINUE_ID);
-  if (!submitted) {
-    throw new WorkerError(
-      "unexpected_page",
-      `no "Continue" control (#${TERM_CONTINUE_ID}) on the term page — Quest's markup may have changed`,
-    );
-  }
-}
-
-/**
- * Wait for the grade rows to replace the term picker.
- *
- * The postback is `ICAJAX`, so content can be swapped in without any navigation
- * event to await — hence polling for the first row's field instead.
- */
-export async function waitForGrades(page: Page, timeoutMs: number): Promise<Frame> {
-  const deadline = Date.now() + timeoutMs;
-  while (Date.now() < deadline) {
-    const frame = gradesFrame(page);
-    if (frame) {
-      const ready = await frame
-        .evaluate(
-          (id) => !!document.getElementById(id),
-          ROW_FIELDS.description(0),
-        )
-        .catch(() => false);
-      if (ready) return frame;
-    }
-    await sleep(500);
-  }
-  throw new WorkerError(
-    "unexpected_page",
-    "the grade rows never appeared after selecting a term — Quest's markup may have changed",
-  );
 }
 
 /** Read every row. Exported for tests, which run it against a saved fixture. */
@@ -233,6 +129,3 @@ export async function parseGrades(frame: Frame): Promise<ParsedGrades> {
   );
 }
 
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}

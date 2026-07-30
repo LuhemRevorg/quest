@@ -7,6 +7,7 @@ export type Request =
   | { id: number; op: "login"; params: LoginParams }
   | { id: number; op: "status"; params: StatusParams }
   | { id: number; op: "grades"; params: GradesParams }
+  | { id: number; op: "schedule"; params: ScheduleParams }
   // No `logout` op: dropping the session means deleting the profile dir, which
   // the Rust side does directly. Nothing there needs a browser.
   | { id: number; op: "shutdown" };
@@ -27,6 +28,12 @@ export interface LoginParams {
 
 export interface StatusParams {
   profile_dir: string;
+}
+
+export interface ScheduleParams {
+  login: LoginParams;
+  /** Term as Quest labels it, e.g. "Spring 2026". Matched case-insensitively. */
+  term_label: string;
 }
 
 export interface GradesParams {

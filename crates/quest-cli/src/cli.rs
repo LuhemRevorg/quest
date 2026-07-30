@@ -34,6 +34,27 @@ pub enum Command {
 
     /// Show grades for one term. Fully non-interactive.
     Grades(GradesArgs),
+
+    /// Show the classes you are enrolled in for one term. Fully non-interactive.
+    ///
+    /// Quest only offers the current and upcoming term here, since enrolment is
+    /// not kept historically — use `grades` for terms that are over.
+    Schedule(ScheduleArgs),
+}
+
+#[derive(Debug, Args)]
+pub struct ScheduleArgs {
+    /// Term, as a code or a name: `1265`, `"Spring 2026"`, `spring2026`, `s2026`.
+    #[arg(long, value_name = "TERM")]
+    pub term: String,
+
+    /// Seconds to allow for sign-in before giving up.
+    #[arg(long, default_value_t = 60)]
+    pub timeout: u64,
+
+    /// How to render the browser. `headed` is for watching it work.
+    #[arg(long, value_enum, default_value_t = DisplayArg::Headless)]
+    pub display: DisplayArg,
 }
 
 #[derive(Debug, Args)]
