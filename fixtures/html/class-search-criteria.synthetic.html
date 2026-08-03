@@ -1,0 +1,128 @@
+<!doctype html>
+<!--
+  SYNTHETIC — hand-built, not a capture. See fixtures/README.md.
+
+  "Search for Classes" → Enter Search Criteria, reduced to the controls
+  `worker/src/search.ts` touches, with the surrounding table structure and the
+  arbitrary `$N` id suffixes PeopleSoft appends kept intact — the suffixes are the
+  reason the field lookups match on an exact-suffix regex rather than a bare id.
+
+  Every id here is the stock Campus Solutions name and is UNVERIFIED against UW's
+  deployment. What this fixture pins is that the *lookup strategy* works against
+  markup of this shape; it cannot pin UW's actual ids. Replace it with a sanitized
+  capture of the real page when one exists, and the tests should still pass.
+-->
+<html lang="en">
+  <head>
+    <title>Search for Classes</title>
+  </head>
+  <body>
+    <form name="win0" method="post" action="/psc/SS/ACADEMIC/SA/c/SA_LEARNER_SERVICES.CLASS_SEARCH.GBL">
+      <input type="hidden" name="ICAction" id="ICAction" value="" />
+      <input type="hidden" name="ICStateNum" id="ICStateNum" value="7" />
+
+      <h2 id="win0divPTPAGETITLE">Enter Search Criteria</h2>
+
+      <table class="PSGROUPBOXNBO">
+        <tr>
+          <td class="PSLEVEL1GRIDLABEL"><label for="CLASS_SRCH_WRK2_INSTITUTION$31$">Institution</label></td>
+          <td>
+            <select id="CLASS_SRCH_WRK2_INSTITUTION$31$" name="CLASS_SRCH_WRK2_INSTITUTION$31$" class="PSDROPDOWNLIST">
+              <option value="UWATR" selected="selected">University of Waterloo</option>
+            </select>
+          </td>
+        </tr>
+        <tr>
+          <td class="PSLEVEL1GRIDLABEL"><label for="CLASS_SRCH_WRK2_STRM$35$">Term</label></td>
+          <td>
+            <select id="CLASS_SRCH_WRK2_STRM$35$" name="CLASS_SRCH_WRK2_STRM$35$" class="PSDROPDOWNLIST"
+                    onchange="submitAction_win0(document.win0,'CLASS_SRCH_WRK2_STRM$35$');">
+              <option value=""></option>
+              <option value="1265" selected="selected">Spring 2026</option>
+              <option value="1269">Fall 2026</option>
+              <option value="1271">Winter 2027</option>
+            </select>
+          </td>
+        </tr>
+      </table>
+
+      <p class="PSTEXT">Select at least 2 search criteria. Select Search to view your search results.</p>
+
+      <h3 id="win0divSSR_CLSRCH_WRK_GROUPBOX3GP$0">Class Search</h3>
+      <table class="PSGROUPBOXNBO">
+        <tr>
+          <td>
+            <input type="button" id="SSR_CLSRCH_WRK_SSR_PB_SUBJECT_SRCH" name="SSR_CLSRCH_WRK_SSR_PB_SUBJECT_SRCH"
+                   class="PSPUSHBUTTONTBBLANK" value="select subject" />
+          </td>
+          <td class="PSLEVEL1GRIDLABEL"><label for="SSR_CLSRCH_WRK_SUBJECT$0">Subject</label></td>
+          <td>
+            <input type="text" id="SSR_CLSRCH_WRK_SUBJECT$0" name="SSR_CLSRCH_WRK_SUBJECT$0"
+                   class="PSEDITBOX" maxlength="10" value="" />
+          </td>
+        </tr>
+        <tr>
+          <td class="PSLEVEL1GRIDLABEL"><label for="SSR_CLSRCH_WRK_SSR_EXACT_MATCH1$0">Course Number</label></td>
+          <td>
+            <select id="SSR_CLSRCH_WRK_SSR_EXACT_MATCH1$0" name="SSR_CLSRCH_WRK_SSR_EXACT_MATCH1$0" class="PSDROPDOWNLIST">
+              <option value="E" selected="selected">is exactly</option>
+              <option value="G">greater than or equal to</option>
+              <option value="L">less than or equal to</option>
+              <option value="C">contains</option>
+            </select>
+          </td>
+          <td>
+            <input type="text" id="SSR_CLSRCH_WRK_CATALOG_NBR$0" name="SSR_CLSRCH_WRK_CATALOG_NBR$0"
+                   class="PSEDITBOX" maxlength="10" value="" />
+          </td>
+        </tr>
+        <tr>
+          <td class="PSLEVEL1GRIDLABEL"><label for="SSR_CLSRCH_WRK_ACAD_CAREER$0">Course Career</label></td>
+          <td>
+            <select id="SSR_CLSRCH_WRK_ACAD_CAREER$0" name="SSR_CLSRCH_WRK_ACAD_CAREER$0" class="PSDROPDOWNLIST">
+              <option value="" selected="selected"></option>
+              <option value="UG">Undergraduate</option>
+              <option value="GRD">Graduate</option>
+            </select>
+          </td>
+        </tr>
+        <tr>
+          <td colspan="3">
+            <input type="checkbox" id="SSR_CLSRCH_WRK_SSR_OPEN_ONLY$4" name="SSR_CLSRCH_WRK_SSR_OPEN_ONLY$4" />
+            <label for="SSR_CLSRCH_WRK_SSR_OPEN_ONLY$4">Show Open Classes Only</label>
+          </td>
+        </tr>
+      </table>
+
+      <h3 id="win0divSSR_CLSRCH_WRK_GROUPBOX4GP$0">Additional Search Criteria</h3>
+      <table class="PSGROUPBOXNBO">
+        <tr>
+          <td class="PSLEVEL1GRIDLABEL"><label for="SSR_CLSRCH_WRK_INSTRUCTOR_NAME$0">Instructor Last Name</label></td>
+          <td>
+            <input type="text" id="SSR_CLSRCH_WRK_INSTRUCTOR_NAME$0" name="SSR_CLSRCH_WRK_INSTRUCTOR_NAME$0"
+                   class="PSEDITBOX" value="" />
+          </td>
+        </tr>
+        <tr>
+          <td class="PSLEVEL1GRIDLABEL"><label for="SSR_CLSRCH_WRK_CLASS_NBR$0">Class Nbr</label></td>
+          <td>
+            <input type="text" id="SSR_CLSRCH_WRK_CLASS_NBR$0" name="SSR_CLSRCH_WRK_CLASS_NBR$0"
+                   class="PSEDITBOX" value="" />
+          </td>
+        </tr>
+        <tr>
+          <td class="PSLEVEL1GRIDLABEL"><label for="SSR_CLSRCH_WRK_DESCR$0">Course Keyword</label></td>
+          <td>
+            <input type="text" id="SSR_CLSRCH_WRK_DESCR$0" name="SSR_CLSRCH_WRK_DESCR$0" class="PSEDITBOX" value="" />
+          </td>
+        </tr>
+      </table>
+
+      <input type="button" id="CLASS_SRCH_WRK2_SSR_PB_CLEAR" name="CLASS_SRCH_WRK2_SSR_PB_CLEAR"
+             class="PSPUSHBUTTONTBBLANK" value="Clear" />
+      <input type="button" id="CLASS_SRCH_WRK2_SSR_PB_CLASS_SRCH" name="CLASS_SRCH_WRK2_SSR_PB_CLASS_SRCH"
+             class="PSPUSHBUTTONTBBLANK" value="Search"
+             onclick="submitAction_win0(document.win0,'CLASS_SRCH_WRK2_SSR_PB_CLASS_SRCH');" />
+    </form>
+  </body>
+</html>

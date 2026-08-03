@@ -3,6 +3,7 @@
 pub mod auth;
 pub mod grades;
 pub mod schedule;
+pub mod search;
 pub mod term;
 
 /// Bumped on any breaking change to a `--json` payload shape. Emitted as

@@ -12,8 +12,12 @@ worker/dist/
 # ---------------------------------------------------------------------------
 profile/
 *.profile/
-session/
 audit.log
+
+# These are *data-dir* names, so they stay anchored to the repo root. Unanchored,
+# `session/` silently swallowed `crates/quest-core/src/session/` — the entire wire
+# protocol and worker transport — and a fresh clone would not compile.
+/session/
 
 # Captured traffic from real sessions contains live cookies + personal data.
 # Only *sanitized* fixtures belong in fixtures/ — see fixtures/README.md.

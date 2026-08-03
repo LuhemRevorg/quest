@@ -67,13 +67,14 @@ worker/                  Node + Playwright session worker
   src/peoplesoft.ts      navigation shared by every self-service page
   src/grades.ts          the grades route + field ids
   src/schedule.ts        the class-schedule route + field ids
+  src/search.ts          the class-search route, field ids + form driving
   src/handlers/          one file per operation
 fixtures/                sanitized HTML for parser tests
 docs/adr/                decisions, including the wrong turns
 ```
 
-Quest-specific selectors are deliberately confined to `quest.ts`, `grades.ts` and
-`schedule.ts`,
+Quest-specific selectors are deliberately confined to `quest.ts`, `grades.ts`,
+`schedule.ts` and `search.ts`,
 so a UW-side change has exactly one place to be fixed.
 
 ---
@@ -199,6 +200,10 @@ exist specifically to make wrongness loud:
 - **Term confirmation** — the grades page must state the term it rendered, and it
   is compared against the request. A stale postback would otherwise return another
   term's marks under the requested heading.
+- **Criteria confirmation** — the class search reads its own form back before
+  pressing Search, because the term postback can re-render it between the write and
+  the click. Searching on criteria the form is not holding returns real, plausible,
+  wrong classes under the heading we asked for.
 - **Never submit a credential form we did not fill.** An interstitial safe to
   click through is one with *no* credential field present in the DOM — presence,
   not visibility. Posting a hidden, unfilled login form produced a real failed
@@ -276,6 +281,7 @@ turns are the expensive part to rediscover.
 | [0004](docs/adr/0004-the-post-duo-sso-handoff.md) | The post-Duo handoff — four wrong diagnoses and what found the answer |
 | [0005](docs/adr/0005-reading-grades.md) | Reading grades, and why id-based scraping beats column positions |
 | [0006](docs/adr/0006-reading-the-class-schedule.md) | Reading the class schedule, and the shared-navigation extraction |
+| [0007](docs/adr/0007-searching-for-classes.md) | Searching for classes — the first page we write to, and unverified selectors |
 
 ## Status and roadmap
 
@@ -283,7 +289,7 @@ turns are the expensive part to rediscover.
 | ----- | ----- | ----- |
 | 1 | `auth login` / `status` / `refresh` / `logout` | done, verified end to end |
 | 2 | first read command (`grades`) | done |
-| 3 | `schedule` done; unofficial transcript, holds, fees | in progress |
+| 3 | `schedule` done, `search` pending live verification; unofficial transcript, holds, fees | in progress |
 | 4 | enrol / drop, behind dry-run + confirmation tokens + audit log | not started |
 | 5 | MCP server over the finished core library | not started |
 

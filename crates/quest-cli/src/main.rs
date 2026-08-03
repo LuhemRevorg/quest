@@ -77,6 +77,12 @@ fn run(args: &Cli, out: Out) -> quest_core::Result<i32> {
             out.emit(&schedule, commands::schedule::render);
             Ok(exit::OK)
         }
+
+        Command::Search(search_args) => {
+            let results = commands::search::search(search_args, out)?;
+            out.emit(&results, commands::search::render);
+            Ok(exit::OK)
+        }
     }
 }
 

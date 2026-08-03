@@ -21,6 +21,24 @@ scrubbed of every personal value — see the rules above.
 | `html/peoplesoft-sso-signin.<date>.html` | the post-Duo handoff page and its `getIdPLink()` anchor | unauthenticated |
 | `html/grades-winter2026.sanitized.html` | the grades grid's field ids | **authenticated, fully scrubbed** |
 | `html/schedule-spring2026.sanitized.html` | the class schedule's two-level structure | **authenticated, fully scrubbed** |
+| `html/class-search-criteria.synthetic.html` | the search form's field ids and their arbitrary `$N` suffixes | ⚠️ **synthetic — hand-built** |
+| `html/class-search-results.synthetic.html` | the search results' two-level structure and near-miss ids | ⚠️ **synthetic — hand-built** |
+
+## Synthetic fixtures
+
+The two `*.synthetic.html` files are **not captures**. They were written by hand
+from the stock Campus Solutions class-search component, because implementing
+`quest search` did not come with a live capture to work from (ADR 0007).
+
+They pin the parser's handling of the page's *shape* — page-global row indices
+under per-course containers, ids that differ by one character, a status that exists
+only as an icon's `alt` — which is the part that has actually broken before. They
+**cannot** pin UW's real element ids, and no test against them should be read as
+evidence that the command works against Quest.
+
+Replace them with a sanitized capture the first time someone runs the command
+against a live session (`QUEST_DEBUG_DUMP_DIR` saves the component's frame), delete
+the `.synthetic.html` files, and expect the existing assertions to survive.
 
 Tests live in `worker/src/quest.test.ts`.
 

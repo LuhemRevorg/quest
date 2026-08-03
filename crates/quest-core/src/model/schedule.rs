@@ -91,7 +91,9 @@ impl RawSchedule {
 /// Quest renders `"EFGH 200 - Second Placeholder Course"`. Split on the first ` - ` only:
 /// course titles contain hyphens of their own ("Placeholder Work-Study Course"), so a
 /// greedy split would mangle them.
-fn split_title(title: Option<&str>) -> (Option<String>, Option<String>) {
+///
+/// Shared with [`crate::model::search`], whose result headings are the same shape.
+pub(crate) fn split_title(title: Option<&str>) -> (Option<String>, Option<String>) {
     let Some(title) = title.map(str::trim).filter(|t| !t.is_empty()) else {
         return (None, None);
     };

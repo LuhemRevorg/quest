@@ -40,6 +40,40 @@ pub enum Command {
     /// Quest only offers the current and upcoming term here, since enrolment is
     /// not kept historically — use `grades` for terms that are over.
     Schedule(ScheduleArgs),
+
+    /// Search a term's class schedule for one course's sections. Fully
+    /// non-interactive.
+    ///
+    /// This reads the catalog, not your record: it works for a course you are not
+    /// enrolled in, and shows every section with its times, room, instructor and
+    /// open/closed status.
+    Search(SearchArgs),
+}
+
+#[derive(Debug, Args)]
+pub struct SearchArgs {
+    /// Term, as a code or a name: `1269`, `"Fall 2026"`, `fall2026`, `f2026`.
+    #[arg(long, value_name = "TERM")]
+    pub term: String,
+
+    /// Subject code, e.g. `CS`. Case-insensitive.
+    #[arg(long, value_name = "SUBJECT")]
+    pub subject: String,
+
+    /// Catalog number, e.g. `246`. Matched exactly.
+    ///
+    /// Required, not optional: Quest's search demands at least two criteria beyond
+    /// the term, so a subject on its own is rejected by the page itself.
+    #[arg(long, value_name = "NUMBER")]
+    pub number: String,
+
+    /// Seconds to allow for sign-in before giving up.
+    #[arg(long, default_value_t = 60)]
+    pub timeout: u64,
+
+    /// How to render the browser. `headed` is for watching it work.
+    #[arg(long, value_enum, default_value_t = DisplayArg::Headless)]
+    pub display: DisplayArg,
 }
 
 #[derive(Debug, Args)]

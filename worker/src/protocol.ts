@@ -8,6 +8,7 @@ export type Request =
   | { id: number; op: "status"; params: StatusParams }
   | { id: number; op: "grades"; params: GradesParams }
   | { id: number; op: "schedule"; params: ScheduleParams }
+  | { id: number; op: "search"; params: SearchParams }
   // No `logout` op: dropping the session means deleting the profile dir, which
   // the Rust side does directly. Nothing there needs a browser.
   | { id: number; op: "shutdown" };
@@ -34,6 +35,19 @@ export interface ScheduleParams {
   login: LoginParams;
   /** Term as Quest labels it, e.g. "Spring 2026". Matched case-insensitively. */
   term_label: string;
+}
+
+export interface SearchParams {
+  login: LoginParams;
+  /** Term as Quest labels it, e.g. "Fall 2026". Matched against the dropdown's options. */
+  term_label: string;
+  /** UW term code, e.g. "1269" — the dropdown's option *value*, used as the fallback
+   * when the label does not match verbatim. */
+  term_code: string;
+  /** Subject code, e.g. "CS". */
+  subject: string;
+  /** Catalog number, e.g. "246". Matched with "is exactly". */
+  catalog_number: string;
 }
 
 export interface GradesParams {

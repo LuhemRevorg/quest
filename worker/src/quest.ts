@@ -32,7 +32,7 @@
 // the service moved hosts. Hitting the old host looks exactly like a dead
 // session, which is why `classifyPage` refuses to guess.
 
-import type { Locator, Page } from "playwright";
+import type { Frame, Locator, Page } from "playwright";
 
 const HOST = "https://quest.pecs.uwaterloo.ca";
 
@@ -168,8 +168,12 @@ export async function tracePage(page: Page, kind: PageKind): Promise<void> {
  * Save the current page's HTML when `QUEST_DEBUG_DUMP_DIR` is set, so a stalled
  * run yields the actual markup instead of another round-trip. Sign-in pages
  * contain no personal data, but the dump is off by default and opt-in per run.
+ *
+ * Takes a `Frame` as well as a `Page`, because self-service components render
+ * inside `main_target_win0` and the outer document's HTML shows only the iframe
+ * tag — a dump of the page is useless for anything past the sign-in chain.
  */
-export async function dumpPage(page: Page, label: string): Promise<void> {
+export async function dumpPage(page: Page | Frame, label: string): Promise<void> {
   const dir = process.env["QUEST_DEBUG_DUMP_DIR"];
   if (!dir) return;
   try {

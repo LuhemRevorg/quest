@@ -1,0 +1,116 @@
+<!doctype html>
+<!--
+  SYNTHETIC — hand-built, not a capture. See fixtures/README.md.
+
+  "Search for Classes" → Search Results, in the shape the parser has to survive:
+
+    * two course containers, so grouping is actually exercised;
+    * section row ids indexed **page-globally** (0,1 then 2), not per course —
+      index arithmetic would pass a one-section fixture and mis-group this one;
+    * `win0divSSR_CLSRSLT_WRK_GROUPBOX2GP$0`, a near-miss of the container id, so a
+      prefix match that swallowed it would show four courses instead of two;
+    * `MTG_CLASSNAME$span$0`, the inner span of a section cell, which is the exact
+      shape that produced a phantom meeting per course on the schedule page (ADR 0006);
+    * status as an icon whose meaning is only in its `alt`.
+
+  Every id is the stock Campus Solutions name and is UNVERIFIED against UW's
+  deployment — this pins the parser's handling of the structure, not UW's ids.
+  Replace it with a sanitized capture of the real page when one exists.
+-->
+<html lang="en">
+  <head>
+    <title>Search for Classes</title>
+  </head>
+  <body>
+    <form name="win0" method="post">
+      <h2 id="win0divPTPAGETITLE">Search Results</h2>
+
+      <table class="PSGROUPBOXNBO">
+        <tr>
+          <td class="PSLEVEL1GRIDLABEL">Term</td>
+          <td>
+            <select id="CLASS_SRCH_WRK2_STRM$35$" name="CLASS_SRCH_WRK2_STRM$35$" class="PSDROPDOWNLIST">
+              <option value="1265">Spring 2026</option>
+              <option value="1269" selected="selected">Fall 2026</option>
+              <option value="1271">Winter 2027</option>
+            </select>
+          </td>
+        </tr>
+      </table>
+
+      <!-- ------------------------------- course 0 ------------------------------- -->
+      <div id="win0divSSR_CLSRSLT_WRK_GROUPBOX2$0" class="PSGROUPBOXWBO">
+        <div id="win0divSSR_CLSRSLT_WRK_GROUPBOX2GP$0" class="PAGROUPDIVIDER">
+          <span id="SSR_CLSRSLT_WRK_GROUPBOX2GP$0">ABCD 100 - Placeholder Course Title</span>
+        </div>
+
+        <table class="PSLEVEL1GRID">
+          <thead>
+            <tr>
+              <th>Class</th><th>Section</th><th>Days &amp; Times</th><th>Room</th>
+              <th>Instructor</th><th>Meeting Dates</th><th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><a id="MTG_CLASSNAME$0" href="javascript:submitAction_win0(document.win0,'MTG_CLASSNAME$0');"
+                     ><span id="MTG_CLASSNAME$span$0">001-LEC</span> Regular</a></td>
+              <td><span id="MTG_CLASS_NBR$0">4382</span></td>
+              <td><span id="MTG_DAYTIME$0">MWF 10:30AM - 11:20AM</span></td>
+              <td><span id="MTG_ROOM$0">MC 4021</span></td>
+              <td><span id="MTG_INSTR$0">Instructor Name</span></td>
+              <td><span id="MTG_TOPIC$0">09/08/2026 - 12/07/2026</span></td>
+              <td>
+                <div id="win0divDERIVED_CLSRCH_SSR_STATUS_LONG$0">
+                  <img id="DERIVED_CLSRCH_SSR_STATUS_LONG$0" src="/cs/PS_CS_STATUS_OPEN_ICN_1.gif" alt="Open" />
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td><a id="MTG_CLASSNAME$1" href="javascript:submitAction_win0(document.win0,'MTG_CLASSNAME$1');"
+                     >002-TUT Regular</a></td>
+              <td><span id="MTG_CLASS_NBR$1">4383</span></td>
+              <td><span id="MTG_DAYTIME$1">TTh 2:30PM - 3:20PM</span></td>
+              <td><span id="MTG_ROOM$1">MC 2054</span></td>
+              <td><span id="MTG_INSTR$1">Instructor Name</span></td>
+              <td><span id="MTG_TOPIC$1">09/08/2026 - 12/07/2026</span></td>
+              <td>
+                <div id="win0divDERIVED_CLSRCH_SSR_STATUS_LONG$1">
+                  <img id="DERIVED_CLSRCH_SSR_STATUS_LONG$1" src="/cs/PS_CS_STATUS_CLOSED_ICN_1.gif" alt="Closed" />
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- ------------------------------- course 1 -------------------------------
+           Row index 2 belongs to the *second* course: the indices run across the
+           whole page, which is the trap this fixture exists to catch. -->
+      <div id="win0divSSR_CLSRSLT_WRK_GROUPBOX2$1" class="PSGROUPBOXWBO">
+        <div id="win0divSSR_CLSRSLT_WRK_GROUPBOX2GP$1" class="PAGROUPDIVIDER">
+          <span id="SSR_CLSRSLT_WRK_GROUPBOX2GP$1">ABCD 100L - Placeholder Lab Course</span>
+        </div>
+
+        <table class="PSLEVEL1GRID">
+          <tbody>
+            <tr>
+              <td><a id="MTG_CLASSNAME$2" href="javascript:submitAction_win0(document.win0,'MTG_CLASSNAME$2');"
+                     >101-LAB Regular</a></td>
+              <td><span id="MTG_CLASS_NBR$2">4390</span></td>
+              <td><span id="MTG_DAYTIME$2">TBA</span></td>
+              <td><span id="MTG_ROOM$2">TBA</span></td>
+              <td><span id="MTG_INSTR$2">Staff</span></td>
+              <td><span id="MTG_TOPIC$2">09/08/2026 - 12/07/2026</span></td>
+              <td>
+                <div id="win0divDERIVED_CLSRCH_SSR_STATUS_LONG$2">
+                  <img id="DERIVED_CLSRCH_SSR_STATUS_LONG$2" src="/cs/PS_CS_STATUS_WAITLIST_ICN_1.gif" alt="Wait List" />
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </form>
+  </body>
+</html>

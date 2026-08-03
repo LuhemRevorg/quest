@@ -1,7 +1,7 @@
 # quest
 
 A command-line tool for reading your own University of Waterloo academic record —
-grades, and eventually schedule, transcript, holds and fees — from
+grades, class schedule, class search, and eventually transcript, holds and fees — from
 [Quest](https://uwaterloo.ca/the-centre/quest).
 
 Built so that scripts and AI agents can use it: every command supports `--json`
@@ -149,6 +149,38 @@ historically. Ask for an older term and the error lists what is available — us
 
 Same `--term`, `--timeout` and `--display` flags as `grades`.
 
+### `quest search --term <TERM> --subject <SUBJECT> --number <NUMBER>`
+
+Which sections of a course run in a term — the catalog, not your record, so it
+works for courses you are not enrolled in. This is Quest's *Search for Classes*,
+reached the same way a human reaches it (Class Schedule → Search for Classes).
+Fully non-interactive.
+
+```console
+$ quest search --term f2026 --subject CS --number 246
+Fall 2026 (1269) — CS 246
+
+ABCD 100 — Placeholder Course Title
+  001 LEC  4382   MWF 10:30AM - 11:20AM     MC 4021        Instructor Name      Open
+  002 TUT  4383   TTh 2:30PM - 3:20PM       MC 2054        Instructor Name      Closed
+
+1 courses, 2 sections
+```
+
+Both `--subject` and `--number` are required: Quest's search demands at least two
+criteria beyond the term, so a subject on its own is rejected by the page itself.
+The number is matched with *is exactly* — `246` will not return 1246.
+
+If nothing matches, that is a successful run reporting Quest's own message, not an
+error. Same `--term`, `--timeout` and `--display` flags as `grades`.
+
+> [!NOTE]
+> The selectors behind this command are the stock PeopleSoft class-search names and
+> have **not yet been confirmed against UW's live page** — every other read here has
+> been. If it fails, it fails loudly and says which fields the page actually had;
+> run it once with `QUEST_DEBUG_DUMP_DIR=/tmp/quest-dump` and the saved markup has
+> everything needed to correct it. See [ADR 0007](docs/adr/0007-searching-for-classes.md).
+
 ### Global
 
 `--json` prints a single JSON document on stdout, with `schema_version` for
@@ -218,7 +250,7 @@ the identity stack, not a bug — see [ARCHITECTURE.md](ARCHITECTURE.md).
 | ----- | ----- | ----- |
 | 1 | `auth login` / `status` / `refresh` / `logout` | ✅ done |
 | 2 | first read command (`grades`) | ✅ done |
-| 3 | `schedule` done; unofficial transcript, holds, fees | in progress |
+| 3 | `schedule` done, `search` pending live verification; unofficial transcript, holds, fees | in progress |
 | 4 | enrol / drop, behind dry-run + confirmation tokens | planned |
 | 5 | MCP server exposing the same core library to agents | planned |
 
