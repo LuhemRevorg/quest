@@ -5,6 +5,7 @@ pub mod grades;
 pub mod schedule;
 pub mod search;
 pub mod term;
+pub mod transcript;
 
 /// Bumped on any breaking change to a `--json` payload shape. Emitted as
 /// `schema_version` in every JSON response so consumers can pin.

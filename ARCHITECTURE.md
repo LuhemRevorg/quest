@@ -68,14 +68,15 @@ worker/                  Node + Playwright session worker
   src/grades.ts          the grades route + field ids
   src/schedule.ts        the class-schedule route + field ids
   src/search.ts          the class-search route, field ids + form driving
+  src/transcript.ts      the unofficial-transcript route + the paid-order guards
   src/handlers/          one file per operation
 fixtures/                sanitized HTML for parser tests
 docs/adr/                decisions, including the wrong turns
 ```
 
 Quest-specific selectors are deliberately confined to `quest.ts`, `grades.ts`,
-`schedule.ts` and `search.ts`,
-so a UW-side change has exactly one place to be fixed.
+`schedule.ts`, `search.ts` and `transcript.ts`, so a UW-side change has exactly one
+place to be fixed.
 
 ---
 
@@ -177,6 +178,16 @@ ordinary HTML with stable ids. Replaying would mean reproducing `ICSID` /
 `ICStateNum` handling for no robustness gain. It remains the right call for
 anything with pagination or heavy state.
 
+Not every read is a DOM read. The transcript is a *file* PeopleSoft generates and
+delivers out-of-band, so `transcript` watches three channels at once — a
+`download` event, a PDF response body, and a popup URL refetched through the
+context — and saves the bytes verbatim rather than parsing them. Headless
+Chromium has no PDF viewer, so in the default mode a PDF popup arrives as a
+download; the other two channels exist for headed runs and as a fallback. The
+bytes cross the worker protocol base64-encoded and Rust writes the file `0600`,
+which keeps the permission discipline in one language and lets a bad output path
+fail before the browser starts. See ADR 0008.
+
 PeopleSoft's DOM is otherwise hostile: content sits inside nested
 `ptifrmtgtframe` / `main_target_win0` iframes, ids contain `$`, and controls are
 `<span role="button">` or `<a href="javascript:…">` rather than form elements.
@@ -208,6 +219,16 @@ exist specifically to make wrongness loud:
   click through is one with *no* credential field present in the DOM — presence,
   not visibility. Posting a hidden, unfilled login form produced a real failed
   sign-in against the account.
+- **Never press a control on a page we cannot identify.** The generalisation of
+  the above, and what makes `transcript` safe: Quest's *official* transcript is a
+  paid ($20) order on a near-identical page next to the unofficial one, so the
+  content frame's URL must name `SSR_TSRQST_UNOFF` immediately before any click,
+  and any control whose label describes placing an order is refused. Note the guard
+  is on the component's identity, never on the word "official" in a label — the
+  unofficial page's own report types are named "Undergrad Official" and similar,
+  and an early version filtered those out and so refused the only option that
+  works. The only guard here that protects against an irreversible action rather
+  than wrong output. See ADR 0008.
 - **`unknown` pages are errors**, never a default.
 
 ## Testing
@@ -229,6 +250,14 @@ is present but empty, leaving the guard permanently inert.
 Fixtures are sanitized — see [fixtures/README.md](fixtures/README.md). Anything
 captured past sign-in has its record replaced, not just its identifiers.
 
+**`transcript` is the exception, and knows it.** A transcript fixture would be a
+complete academic record, so there is none; its tests drive synthetic pages through
+Playwright instead, and cover the parts where being wrong is expensive — the
+paid-order guard, the component check, report-type selection, and the format sniff
+that keeps a sign-in page from being saved as a transcript. `search` is the other
+exception, for a different reason: hand-built fixtures, because no capture existed
+when it was written (ADR 0007).
+
 ## Development
 
 ```sh
@@ -246,6 +275,7 @@ real session profile.
 | Variable | Effect |
 | -------- | ------ |
 | `QUEST_DATA_DIR` | relocate config + profile |
+| `QUEST_DOWNLOAD_DIR` | where `transcript` saves with no `--output` (default: the OS Downloads folder) |
 | `QUEST_WORKER_JS` | override worker discovery |
 | `QUEST_NODE` | override the node binary |
 | `QUEST_DEBUG_COOKIES=1` | print the cookie jar — names, domains, expiries; never values |
@@ -282,6 +312,7 @@ turns are the expensive part to rediscover.
 | [0005](docs/adr/0005-reading-grades.md) | Reading grades, and why id-based scraping beats column positions |
 | [0006](docs/adr/0006-reading-the-class-schedule.md) | Reading the class schedule, and the shared-navigation extraction |
 | [0007](docs/adr/0007-searching-for-classes.md) | Searching for classes — the first page we write to, and unverified selectors |
+| [0008](docs/adr/0008-downloading-the-unofficial-transcript.md) | Downloading the unofficial transcript, and the guards around a paid page |
 
 ## Status and roadmap
 
@@ -289,7 +320,7 @@ turns are the expensive part to rediscover.
 | ----- | ----- | ----- |
 | 1 | `auth login` / `status` / `refresh` / `logout` | done, verified end to end |
 | 2 | first read command (`grades`) | done |
-| 3 | `schedule` done, `search` pending live verification; unofficial transcript, holds, fees | in progress |
+| 3 | `schedule` and `transcript` done, `search` pending live verification; holds, fees | in progress |
 | 4 | enrol / drop, behind dry-run + confirmation tokens + audit log | not started |
 | 5 | MCP server over the finished core library | not started |
 

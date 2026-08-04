@@ -9,6 +9,7 @@ export type Request =
   | { id: number; op: "grades"; params: GradesParams }
   | { id: number; op: "schedule"; params: ScheduleParams }
   | { id: number; op: "search"; params: SearchParams }
+  | { id: number; op: "transcript"; params: TranscriptParams }
   // No `logout` op: dropping the session means deleting the profile dir, which
   // the Rust side does directly. Nothing there needs a browser.
   | { id: number; op: "shutdown" };
@@ -55,6 +56,21 @@ export interface GradesParams {
   login: LoginParams;
   /** Term as Quest labels it, e.g. "Winter 2026". Matched case-insensitively. */
   term_label: string;
+}
+
+export interface TranscriptParams {
+  login: LoginParams;
+  /**
+   * Which report type to request, matched case-insensitively as a substring of the
+   * option label. Null takes the sole option, and refuses to guess between several.
+   *
+   * This cannot order an official transcript whatever it is set to: ordering lives
+   * on a different component, and the worker proves it is on the unofficial one
+   * before pressing anything.
+   */
+  report_type: string | null;
+  /** How long to wait for the report after pressing "View Report". */
+  report_timeout_secs: number;
 }
 
 export type Stage =

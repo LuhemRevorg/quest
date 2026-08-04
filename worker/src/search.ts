@@ -169,8 +169,11 @@ export async function clickSearchEntry(ctx: BrowserContext): Promise<ClickedEntr
                 // Unparseable href: treat it as relative, i.e. still ours.
               }
             }
-            // Guided-process step tiles are that sidebar's markup.
-            return !el.closest("[ptgpid], [steplabel]");
+            // Note this does not exclude guided-process steps as such: on other
+            // routes (the transcript's) the real entry *is* a step pointing at a
+            // component. Where the link goes is the discriminator; the help
+            // articles above are rejected for being off-host, not for being steps.
+            return true;
           };
 
           const matches = Array.from(

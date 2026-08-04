@@ -9,6 +9,7 @@ import { login } from "./handlers/login.js";
 import { schedule } from "./handlers/schedule.js";
 import { search } from "./handlers/search.js";
 import { status } from "./handlers/status.js";
+import { transcript } from "./handlers/transcript.js";
 import { WorkerError, send, type Request } from "./protocol.js";
 
 async function dispatch(req: Request): Promise<unknown> {
@@ -23,6 +24,8 @@ async function dispatch(req: Request): Promise<unknown> {
       return schedule(req.id, req.params);
     case "search":
       return search(req.id, req.params);
+    case "transcript":
+      return transcript(req.id, req.params);
     case "shutdown":
       process.exit(0);
   }

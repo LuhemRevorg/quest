@@ -1,7 +1,8 @@
 # quest
 
 A command-line tool for reading your own University of Waterloo academic record —
-grades, class schedule, class search, and eventually transcript, holds and fees — from
+grades, class schedule, class search, unofficial transcript, and eventually holds
+and fees — from
 [Quest](https://uwaterloo.ca/the-centre/quest).
 
 Built so that scripts and AI agents can use it: every command supports `--json`
@@ -181,6 +182,55 @@ error. Same `--term`, `--timeout` and `--display` flags as `grades`.
 > run it once with `QUEST_DEBUG_DUMP_DIR=/tmp/quest-dump` and the saved markup has
 > everything needed to correct it. See [ADR 0007](docs/adr/0007-searching-for-classes.md).
 
+### `quest transcript`
+
+Downloads your **unofficial** transcript — normally a PDF — and prints where it
+went. It covers your whole record, so there is no term to pick.
+
+```console
+$ quest transcript --report-type undergrad
+saved your unofficial transcript
+  report:  Undergrad Unofficial
+  from:    University of Waterloo
+  format:  PDF, 148.2 KB
+  sha256:  3f2a…
+  path:    /Users/you/Downloads/quest-unofficial-transcript-2026-08-03.pdf
+```
+
+It lands in your **Downloads folder** by default — where the browser this replaces
+would have put it — written `0600` and named with the date, so re-running does not
+overwrite the last one. `--output` takes a file or a directory;
+`QUEST_DOWNLOAD_DIR` moves the default.
+
+| Flag | |
+| ---- | --- |
+| `--output <PATH>` | a file to write, or a directory to put the dated default name in |
+| `--force` | overwrite an existing file |
+| `--report-type <TEXT>` | names the report (e.g. `undergrad`) when Quest offers more than one |
+| `--timeout <SECS>` | sign-in deadline (default 60) |
+| `--report-timeout <SECS>` | how long Quest gets to generate the report (default 120) |
+| `--display <headless\|headed>` | |
+
+UW offers two: **`Undergrad Unofficial`** and **`Graduate Unofficial`** (note
+"Undergrad", not "Undergraduate"). `--report-type` is matched exactly, then on word
+boundaries, then as a substring — so `undergrad` picks the first without also
+matching the second, which a plain substring match would. A sole report type is
+taken automatically; several without direction is an error listing them verbatim,
+rather than a guess between an undergraduate and a graduate record.
+
+Bad output paths are rejected before the browser starts, not after the sign-in.
+
+> [!IMPORTANT]
+> **Unofficial only, always.** Quest's *official* transcript is a paid ($20) order
+> sitting on a near-identical page next to this one. `quest` refuses to press
+> anything on a page it cannot prove is the free unofficial component, and refuses
+> any control that describes placing an order.
+>
+> Note that Quest names some reports on the *unofficial* page "Undergrad Official"
+> and similar — that names the report template, not a paid order. Officialness is a
+> property of the page you are on, which is what `quest` checks. See
+> [ADR 0008](docs/adr/0008-downloading-the-unofficial-transcript.md).
+
 ### Global
 
 `--json` prints a single JSON document on stdout, with `schema_version` for
@@ -214,6 +264,7 @@ to stderr, so a caller never has to parse prose.
 | Config (username, preferences) | `…/config.toml` | `0600`, no secrets |
 | Password | OS keychain, service `ca.uwaterloo.quest` | opt-in only |
 | Duo passcodes | **nowhere** | never stored or cached |
+| Downloaded transcripts | wherever you point `--output` | `0600`; your whole academic record |
 
 Override the location with `QUEST_DATA_DIR`.
 
@@ -250,7 +301,7 @@ the identity stack, not a bug — see [ARCHITECTURE.md](ARCHITECTURE.md).
 | ----- | ----- | ----- |
 | 1 | `auth login` / `status` / `refresh` / `logout` | ✅ done |
 | 2 | first read command (`grades`) | ✅ done |
-| 3 | `schedule` done, `search` pending live verification; unofficial transcript, holds, fees | in progress |
+| 3 | `schedule` and `transcript` done, `search` pending live verification; holds, fees | in progress |
 | 4 | enrol / drop, behind dry-run + confirmation tokens | planned |
 | 5 | MCP server exposing the same core library to agents | planned |
 

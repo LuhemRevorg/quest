@@ -83,6 +83,12 @@ fn run(args: &Cli, out: Out) -> quest_core::Result<i32> {
             out.emit(&results, commands::search::render);
             Ok(exit::OK)
         }
+
+        Command::Transcript(transcript_args) => {
+            let download = commands::transcript::transcript(transcript_args, out)?;
+            out.emit(&download, commands::transcript::render);
+            Ok(exit::OK)
+        }
     }
 }
 

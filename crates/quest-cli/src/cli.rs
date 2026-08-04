@@ -48,6 +48,54 @@ pub enum Command {
     /// enrolled in, and shows every section with its times, room, instructor and
     /// open/closed status.
     Search(SearchArgs),
+
+    /// Download your unofficial transcript. Fully non-interactive.
+    ///
+    /// Saves the report Quest generates — normally a PDF — and prints where it
+    /// went. It covers your whole record, so there is no term to pick.
+    ///
+    /// Only the *unofficial* transcript. Ordering an official one is a paid ($20)
+    /// request, and this tool has no flag that places one.
+    Transcript(TranscriptArgs),
+}
+
+#[derive(Debug, Args)]
+pub struct TranscriptArgs {
+    /// Where to save it. A directory gets a dated default name; a filename is used
+    /// as given.
+    ///
+    /// Omitted, the report goes to your Downloads folder — where the browser this
+    /// replaces would have put it. `QUEST_DOWNLOAD_DIR` overrides that.
+    #[arg(long, short, value_name = "PATH")]
+    pub output: Option<std::path::PathBuf>,
+
+    /// Overwrite the file if it already exists.
+    #[arg(long)]
+    pub force: bool,
+
+    /// Which report to request, when Quest offers more than one — e.g.
+    /// `undergrad`. Matched exactly, then on word boundaries, then as a substring.
+    ///
+    /// UW offers `Undergrad Unofficial` and `Graduate Unofficial`; note
+    /// "Undergrad", not "Undergraduate". Only needed if there is a choice; a sole
+    /// report type is taken automatically, and an ambiguous one is an error
+    /// listing the options rather than a guess.
+    #[arg(long, value_name = "TEXT")]
+    pub report_type: Option<String>,
+
+    /// Seconds to allow for sign-in before giving up.
+    #[arg(long, default_value_t = 60)]
+    pub timeout: u64,
+
+    /// Seconds to wait for Quest to generate the report after the page is loaded.
+    /// Separate from `--timeout`: PeopleSoft builds the PDF on demand and that has
+    /// nothing to do with signing in.
+    #[arg(long, default_value_t = 120)]
+    pub report_timeout: u64,
+
+    /// How to render the browser. `headed` is for watching it work.
+    #[arg(long, value_enum, default_value_t = DisplayArg::Headless)]
+    pub display: DisplayArg,
 }
 
 #[derive(Debug, Args)]

@@ -43,6 +43,17 @@ export const URLS = {
    */
   questHome: `${HOST}/psp/SS/ACADEMIC/SA/h/?tab=DEFAULT`,
   /**
+   * The Fluid landing page — **where the tiles are**, and where signing in
+   * actually leaves you. `questHome` above is the *classic* portal: a good
+   * authenticated-or-not probe, but it renders a `Main Menu` flyout and no
+   * `PTNUI_LAND_REC_GROUPLET` tiles whatsoever. Navigating there mid-command
+   * throws away the only page `openTile` can work on, which is exactly how
+   * `transcript` came to report "no tile and no link" for all six sections it
+   * knows. Observed on the live deployment; note `/psc/` (the content servlet),
+   * not `/psp/`.
+   */
+  fluidHome: `${HOST}/psc/SS/ACADEMIC/SA/c/NUI_FRAMEWORK.PT_LANDINGPAGE.GBL`,
+  /**
    * PeopleSoft's *local* sign-in form (`#userid` / `#pwd`), which bypasses SAML.
    * Not the student path — WatIAM + Duo means going through ADFS. Kept only so
    * the selectors below are explainable.

@@ -38,6 +38,32 @@ pub fn audit_log() -> Result<PathBuf> {
     Ok(data_dir()?.join("audit.log"))
 }
 
+/// Where a downloaded report goes when `--output` says nothing.
+///
+/// The OS Downloads folder: this tool is standing in for a browser, and that is
+/// where the browser would have put it. Not [`data_dir`] — that holds Quest's own
+/// state, and a transcript is the user's document, not ours to file away.
+///
+/// Overridable with `QUEST_DOWNLOAD_DIR`, which is also how the tests avoid
+/// touching a real home directory.
+///
+/// Falls back to the current directory when the platform reports no Downloads
+/// folder, or names one that does not exist — a Linux box without `xdg-user-dirs`,
+/// say. Creating a `Downloads` directory on a machine that has deliberately not
+/// got one would be a surprising thing for a read command to do.
+pub fn downloads_dir() -> Result<PathBuf> {
+    if let Some(dir) = std::env::var_os("QUEST_DOWNLOAD_DIR") {
+        return Ok(PathBuf::from(dir));
+    }
+    let from_os = directories::UserDirs::new()
+        .and_then(|dirs| dirs.download_dir().map(Path::to_path_buf))
+        .filter(|dir| dir.is_dir());
+    match from_os {
+        Some(dir) => Ok(dir),
+        None => Ok(std::env::current_dir()?),
+    }
+}
+
 /// Create `path` if absent and force `0700`, then verify it. Used for the data
 /// and profile dirs before anything writes a cookie into them.
 pub fn ensure_private_dir(path: &Path) -> Result<()> {
