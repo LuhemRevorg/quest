@@ -114,10 +114,21 @@ pub fn render(search: &ClassSearch) -> String {
         lines.push(format!("\n{message}"));
     }
 
+    // A search for one course number usually returns exactly one course, so the
+    // summary line is singular more often than not.
     let sections: usize = search.courses.iter().map(|c| c.sections.len()).sum();
     lines.push(format!(
-        "\n{} courses, {sections} sections",
-        search.courses.len()
+        "\n{}, {}",
+        plural(search.courses.len(), "course"),
+        plural(sections, "section")
     ));
     lines.join("\n")
+}
+
+fn plural(count: usize, noun: &str) -> String {
+    if count == 1 {
+        format!("{count} {noun}")
+    } else {
+        format!("{count} {noun}s")
+    }
 }

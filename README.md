@@ -77,6 +77,8 @@ quest auth login --username you@uwaterloo.ca --save-password
 # Everything after this is non-interactive.
 quest auth status
 quest grades --term w2026 --json
+quest search --term f2026 --subject CS --number 246
+quest transcript --report-type undergrad     # lands in ~/Downloads
 ```
 
 On the first non-interactive run, macOS asks for Keychain access — choose
@@ -152,35 +154,51 @@ Same `--term`, `--timeout` and `--display` flags as `grades`.
 
 ### `quest search --term <TERM> --subject <SUBJECT> --number <NUMBER>`
 
-Which sections of a course run in a term — the catalog, not your record, so it
-works for courses you are not enrolled in. This is Quest's *Search for Classes*,
-reached the same way a human reaches it (Class Schedule → Search for Classes).
-Fully non-interactive.
+Which sections of a course run in a term, with times, room, instructor and
+open/closed status. This reads the **catalog, not your record**, so it works for a
+course you are not enrolled in and never have been — which is what makes it useful
+before enrolment opens. Fully non-interactive.
 
 ```console
 $ quest search --term f2026 --subject CS --number 246
 Fall 2026 (1269) — CS 246
 
-ABCD 100 — Placeholder Course Title
-  001 LEC  4382   MWF 10:30AM - 11:20AM     MC 4021        Instructor Name      Open
-  002 TUT  4383   TTh 2:30PM - 3:20PM       MC 2054        Instructor Name      Closed
+CS 246 — Object-Oriented Software Development
+  001 LEC  4382   MWF 10:30AM - 11:20AM   MC 4021   Instructor Name   Open
+  101 TUT  4390   T 2:30PM - 3:20PM       MC 2054   Instructor Name   Closed
 
-1 courses, 2 sections
+1 course, 2 sections
 ```
 
-Both `--subject` and `--number` are required: Quest's search demands at least two
-criteria beyond the term, so a subject on its own is rejected by the page itself.
-The number is matched with *is exactly* — `246` will not return 1246.
+| Flag | |
+| ---- | --- |
+| `--term <TERM>` | as a code or a name: `1269`, `"Fall 2026"`, `fall2026`, `f2026` |
+| `--subject <SUBJECT>` | subject code, e.g. `CS`. Case-insensitive |
+| `--number <NUMBER>` | catalog number, e.g. `246` |
+| `--timeout <SECS>` | sign-in deadline (default 60) |
+| `--display <headless\|headed>` | `headed` to watch it work |
 
-If nothing matches, that is a successful run reporting Quest's own message, not an
-error. Same `--term`, `--timeout` and `--display` flags as `grades`.
+**Both `--subject` and `--number` are required.** Quest's own form demands at least
+two criteria besides the term, so a subject on its own is rejected by the page —
+there is no flag combination here that cannot work. The number is matched with *is
+exactly*, so `246` will not also return 1246 or 2460.
+
+Finding nothing is a **success**, not an error: you get Quest's own message
+("no results that match the criteria specified") and exit `0`. A course that simply
+does not run that term is an answer.
 
 > [!NOTE]
-> The selectors behind this command are the stock PeopleSoft class-search names and
-> have **not yet been confirmed against UW's live page** — every other read here has
-> been. If it fails, it fails loudly and says which fields the page actually had;
-> run it once with `QUEST_DEBUG_DUMP_DIR=/tmp/quest-dump` and the saved markup has
-> everything needed to correct it. See [ADR 0007](docs/adr/0007-searching-for-classes.md).
+> **Partly verified.** Live runs confirmed the way in — the Class Schedule tile
+> opens an activity guide whose sidebar is mostly uwaterloo.ca help articles, so
+> the search is reached via the classic *go to* → Student Center route. The
+> **criteria form and results grid are still keyed on stock PeopleSoft names** that
+> UW may spell differently, as `transcript` turned out to (`SSS_` where the manual
+> says `SSR_`).
+>
+> It fails loudly rather than quietly: a missing field reports the ids the page
+> actually had, and every failure dumps the markup when `QUEST_DEBUG_DUMP_DIR` is
+> set. One run with it produces everything needed to correct the selectors. See
+> [ADR 0007](docs/adr/0007-searching-for-classes.md).
 
 ### `quest transcript`
 
@@ -199,26 +217,37 @@ saved your unofficial transcript
 
 It lands in your **Downloads folder** by default — where the browser this replaces
 would have put it — written `0600` and named with the date, so re-running does not
-overwrite the last one. `--output` takes a file or a directory;
-`QUEST_DOWNLOAD_DIR` moves the default.
+overwrite the last one.
 
 | Flag | |
 | ---- | --- |
 | `--output <PATH>` | a file to write, or a directory to put the dated default name in |
 | `--force` | overwrite an existing file |
-| `--report-type <TEXT>` | names the report (e.g. `undergrad`) when Quest offers more than one |
+| `--report-type <TEXT>` | which report, when Quest offers more than one (e.g. `undergrad`) |
 | `--timeout <SECS>` | sign-in deadline (default 60) |
 | `--report-timeout <SECS>` | how long Quest gets to generate the report (default 120) |
-| `--display <headless\|headed>` | |
+| `--display <headless\|headed>` | `headed` to watch it work |
 
-UW offers two: **`Undergrad Unofficial`** and **`Graduate Unofficial`** (note
-"Undergrad", not "Undergraduate"). `--report-type` is matched exactly, then on word
-boundaries, then as a substring — so `undergrad` picks the first without also
-matching the second, which a plain substring match would. A sole report type is
-taken automatically; several without direction is an error listing them verbatim,
-rather than a guess between an undergraduate and a graduate record.
+**Choosing the report.** UW offers two: **`Undergrad Unofficial`** and
+**`Graduate Unofficial`** — note "Undergrad", not "Undergraduate", so
+`--report-type undergraduate` matches neither. Matching is tried exactly, then on
+word boundaries, then as a substring, so `undergrad` selects the first without also
+catching `Graduate Unofficial` the way a plain substring match would. A sole report
+type is taken automatically; several without direction is an error listing them
+verbatim, rather than a guess between an undergraduate and a graduate record.
 
-Bad output paths are rejected before the browser starts, not after the sign-in.
+**Where it goes.** `--output` takes either a file (used as given) or a directory
+(gets the dated default name). `QUEST_DOWNLOAD_DIR` moves the default. Bad output
+paths are rejected *before* the browser starts, so a typo costs milliseconds rather
+than a full sign-in, and today's file already existing is caught the same way —
+pass `--force` to replace it.
+
+**Pop-ups.** Quest delivers the report by opening a new window, and says so on the
+page: *"To view your Unofficial Transcript, please ensure your pop-up blockers are
+disabled."* `quest` runs Chromium with popup blocking off for exactly this reason —
+without it "View Report" produces no window, no file and no error, and the run just
+waits. Nothing is needed from you; it is worth knowing because it is the one place
+a browser policy can make this look like a hang.
 
 > [!IMPORTANT]
 > **Unofficial only, always.** Quest's *official* transcript is a paid ($20) order
@@ -264,9 +293,14 @@ to stderr, so a caller never has to parse prose.
 | Config (username, preferences) | `…/config.toml` | `0600`, no secrets |
 | Password | OS keychain, service `ca.uwaterloo.quest` | opt-in only |
 | Duo passcodes | **nowhere** | never stored or cached |
-| Downloaded transcripts | wherever you point `--output` | `0600`; your whole academic record |
+| Downloaded transcripts | `~/Downloads`, or wherever `--output` says | `0600`; your whole academic record |
 
-Override the location with `QUEST_DATA_DIR`.
+Override the locations with `QUEST_DATA_DIR` and `QUEST_DOWNLOAD_DIR`.
+
+A saved transcript is the same class of secret as the profile directory — it is
+your full record in a file anyone with read access can open. `.gitignore` covers
+the default name so one cannot be committed by accident, but a path you choose
+yourself is yours to look after.
 
 **The profile directory and the keychain entry together grant 30 days of
 unattended access to your full record.** Treat them as you would a password.
@@ -290,6 +324,11 @@ Other guarantees, by design:
 | exit `70`, "may have changed" | Quest changed its markup; please [open an issue](https://github.com/LuhemRevorg/quest/issues) |
 | exit `69`, worker not built | `npm --prefix worker install && npm --prefix worker run build` |
 | `sso: not persisted` in `status` | **normal.** UW disables ADFS keep-me-signed-in |
+| `transcript`: "already exists" | today's file is already in Downloads — `--force`, or `--output` elsewhere |
+| `transcript`: "matches several report types" | pass more of the label, e.g. `undergrad` rather than `un` |
+| `transcript`: "no report arrived within 120s" | Quest was still generating, or the window was blocked — retry with `--report-timeout 240`, and `--display headed` to watch |
+| `search`: "Select at least 2 search criteria" | pass both `--subject` and `--number`; the term alone does not count |
+| `search`: no results | not an error — that course does not run that term |
 
 Every command takes ~10–20s, because no Quest session survives between
 invocations and each run re-walks the full sign-in chain. That is a property of
@@ -301,7 +340,7 @@ the identity stack, not a bug — see [ARCHITECTURE.md](ARCHITECTURE.md).
 | ----- | ----- | ----- |
 | 1 | `auth login` / `status` / `refresh` / `logout` | ✅ done |
 | 2 | first read command (`grades`) | ✅ done |
-| 3 | `schedule` and `transcript` done, `search` pending live verification; holds, fees | in progress |
+| 3 | `schedule` and `transcript` done; `search` routes verified, its form and results not; holds, fees | in progress |
 | 4 | enrol / drop, behind dry-run + confirmation tokens | planned |
 | 5 | MCP server exposing the same core library to agents | planned |
 
